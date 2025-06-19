@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thống kê và Nhận xét</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .glassmorphism {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .chart, .comment-section {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .chart:hover, .comment-section:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .chart, .comment-section, .search-section {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+    .dark-mode {
+      background: #1F2937;
+      color: #F3F4F6;
+    }
+    .dark-mode .glassmorphism {
+      background: rgba(31, 41, 55, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 font-sans min-h-screen transition-colors" id="body">
+  <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-4xl sm:text-5xl font-bold text-center text-gray-800 dark:text-gray-100 animate-pulse">Thống kê tự động Website theo Quý </h1>
+      <button onclick="toggleDarkMode()" class="bg-gray-800 text-white px-4 py-2 rounded-lg">Chế độ tối</button>
+    </div>
+
+    <div class="search-section glassmorphism rounded-2xl shadow-lg p-6 mb-10 w-full">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Tìm kiếm biểu đồ</h2>
+      <input id="chartSearch" type="text" class="w-full p-3 border rounded-lg bg-white/70 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nhập tên biểu đồ (VD: Lượt truy cập, Lượt thi...)">
+    </div>
+
+    <div id="chartsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
+      <div class="chart glassmorphism rounded-1xl shadow-lg p-6 sm:p-8 w-full" data-title="Lượt truy cập theo quý (2024)">
+        <canvas id="visitsChart"></canvas>
+      </div>
+      <div class="chart glassmorphism rounded-1xl shadow-lg p-6 sm:p-8 w-full" data-title="Lượt thi đã thực hiện theo quý (2024)">
+        <canvas id="examsChart"></canvas>
+      </div>
+      <div class="chart glassmorphism rounded-1xl shadow-lg p-6 sm:p-8 w-full" data-title="Lượt tải đề thi mẫu theo quý (2024)">
+        <canvas id="downloadsChart"></canvas>
+      </div>
+      <div class="chart glassmorphism rounded-1xl shadow-lg p-6 sm:p-8 w-full" data-title="Lượt phản hồi đánh giá web theo quý (2024)">
+        <canvas id="feedbacksChart"></canvas>
+      </div>
+    </div>
+
+    <div class="glassmorphism rounded-2xl shadow-lg p-6 sm:p-8 w-full mb-10">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Bảng tổng hợp dữ liệu</h2>
+      <table class="table-auto w-full border text-left">
+        <thead class="bg-gray-200">
+  <tr>
+    <th class="p-2 border">Quý</th>
+    <th class="p-2 border">Lượt truy cập</th>
+    <th class="p-2 border">Lượt thi</th>
+    <th class="p-2 border">Tải đề</th>
+    <th class="p-2 border">Phản hồi</th>
+    <th class="p-2 border">Xem phản hồi</th>
+  </tr>
+</thead>
+
+        <tbody id="summaryTable" class="bg-white/70"></tbody>
+      </table>
+    </div>
+
+    <div class="comment-section glassmorphism rounded-2xl shadow-lg p-6 sm:p-8 w-full">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Nhập nhận xét</h2>
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-col sm:flex-row gap-4">
+          <select id="quarterSelect" class="p-3 border rounded-lg bg-white/70 text-gray-700">
+            <option value="1">Quý 1</option>
+            <option value="2">Quý 2</option>
+            <option value="3">Quý 3</option>
+            <option value="4">Quý 4</option>
+          </select>
+          <select id="categorySelect" class="p-3 border rounded-lg bg-white/70 text-gray-700">
+            <option value="visits">Lượt truy cập</option>
+            <option value="exams">Lượt thi đã thực hiện</option>
+            <option value="downloads">Lượt tải đề thi mẫu</option>
+            <option value="feedbacks">Lượt phản hồi</option>
+          </select>
+        </div>
+        <textarea id="commentInput" class="p-3 border rounded-lg bg-white/70 text-gray-700 h-24 resize-y" placeholder="Nhập nhận xét của bạn..."></textarea>
+        <div class="flex gap-4">
+          <button id="saveComment" class="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700">Lưu nhận xét</button>
+          <button id="deleteComment" class="bg-red-600 text-white p-3 rounded-lg hover:bg-red-700">Xóa nhận xét</button>
+        </div>
+      </div>
+      <div id="commentOutput" class="bg-white/70 p-4 rounded-lg text-gray-700 mt-4"></div>
+    </div>
+  </div>
+
+  <script>
+    const quarters = ['Quý 1', 'Quý 2', 'Quý 3', 'Quý 4'];
+    const visitsData = [120, 150, 180, 200];
+    const examsData = [35, 42, 50, 60];
+    const downloadsData = [20, 25, 30, 35];
+    const feedbacksData = [15, 20, 25, 30];
+
+    new Chart(document.getElementById('visitsChart'), {
+      type: 'bar',
+      data: {
+        labels: quarters,
+        datasets: [{
+          label: 'Lượt truy cập',
+          data: visitsData,
+          backgroundColor: 'rgba(59, 130, 246, 0.7)',
+          borderColor: '#1E40AF',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { title: { display: true, text: 'Lượt truy cập theo quý (2024)' } }
+      }
+    });
+
+    new Chart(document.getElementById('examsChart'), {
+      type: 'line',
+      data: {
+        labels: quarters,
+        datasets: [{
+          label: 'Lượt thi đã thực hiện',
+          data: examsData,
+          backgroundColor: 'rgba(16, 185, 129, 0.3)',
+          borderColor: '#065F46',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { title: { display: true, text: 'Lượt thi đã thực hiện theo quý (2024)' } }
+      }
+    });
+
+    new Chart(document.getElementById('downloadsChart'), {
+      type: 'line',
+      data: {
+        labels: quarters,
+        datasets: [{
+          label: 'Lượt tải đề thi mẫu',
+          data: downloadsData,
+          backgroundColor: 'rgba(245, 158, 11, 0.7)',
+          borderColor: '#B45309',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { title: { display: true, text: 'Lượt tải đề thi mẫu theo quý (2024)' } }
+      }
+    });
+
+    new Chart(document.getElementById('feedbacksChart'), {
+      type: 'pie',
+      data: {
+        labels: quarters,
+        datasets: [{
+          label: 'Lượt phản hồi',
+          data: feedbacksData,
+          backgroundColor: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6'],
+          borderColor: '#fff',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { title: { display: true, text: 'Lượt phản hồi đánh giá web theo quý (2024)' } }
+      }
+    });
+
+    document.getElementById('chartSearch').addEventListener('input', function () {
+      const value = this.value.toLowerCase();
+      document.querySelectorAll('.chart').forEach(chart => {
+        const title = chart.getAttribute('data-title').toLowerCase();
+        chart.style.display = title.includes(value) ? 'block' : 'none';
+      });
+    });
+
+    const summaryTable = document.getElementById('summaryTable');
+   for (let i = 0; i < quarters.length; i++) {
+  summaryTable.innerHTML += `
+    <tr>
+      <td class="p-2 border">${quarters[i]}</td>
+      <td class="p-2 border">${visitsData[i]}</td>
+      <td class="p-2 border">${examsData[i]}</td>
+      <td class="p-2 border">${downloadsData[i]}</td>
+      <td class="p-2 border">${feedbacksData[i]}</td>
+      <td class="p-2 border">
+    <a href="https://linhkhanh10112004.wixsite.com/vstepblog" class="text-blue-600 hover:text-blue-800 text-lg font-medium">Xem</a>
+      </td>
+    </tr>
+  `;
+}
+function viewFeedback(quarter) {
+  quarterSelect.value = quarter.toString();
+  categorySelect.value = 'feedbacks';
+  displayComment();
+  commentInput.scrollIntoView({ behavior: 'smooth' });
+}
+
+
+    const quarterSelect = document.getElementById('quarterSelect');
+    const categorySelect = document.getElementById('categorySelect');
+    const commentInput = document.getElementById('commentInput');
+    const saveComment = document.getElementById('saveComment');
+    const deleteComment = document.getElementById('deleteComment');
+    const commentOutput = document.getElementById('commentOutput');
+
+    function displayComment() {
+      const key = `${categorySelect.value}_${quarterSelect.value}`;
+      commentOutput.textContent = localStorage.getItem(key) || "Chưa có nhận xét cho lựa chọn này.";
+    }
+
+    saveComment.addEventListener('click', () => {
+      const key = `${categorySelect.value}_${quarterSelect.value}`;
+      const comment = commentInput.value.trim();
+      if (comment) {
+        localStorage.setItem(key, comment);
+        commentInput.value = '';
+        displayComment();
+      } else {
+        alert('Vui lòng nhập nhận xét trước khi lưu!');
+      }
+    });
+
+    deleteComment.addEventListener('click', () => {
+      const key = `${categorySelect.value}_${quarterSelect.value}`;
+      localStorage.removeItem(key);
+      displayComment();
+    });
+
+    quarterSelect.addEventListener('change', displayComment);
+    categorySelect.addEventListener('change', displayComment);
+    displayComment();
+
+    function toggleDarkMode() {
+      document.getElementById('body').classList.toggle('dark-mode');
+    }
+  </script>
+</body>
+</html>
